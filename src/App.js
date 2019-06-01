@@ -74,10 +74,10 @@ class FromContainer extends React.Component {
                         )}
                     </FormItem>
                     <Row gutter={16}>
-                        <Col span={6}><Button size={"large"} type={"primary"}>重置</Button></Col>
+                        <Col span={6}><Button size={"large"} type={"primary"}>Reset</Button></Col>
                         <Col span={6}>&nbsp;</Col>
-                        <Col span={6}><Button size={"large"} type={"primary"}>加密</Button></Col>
-                        <Col span={6}><Button size={"large"} type={"primary"}>解密</Button></Col>
+                        <Col span={6}><Button style={{float:"right"}} size={"large"} type={"primary"}>Encrypt</Button></Col>
+                        <Col span={6}><Button style={{float:"right"}} size={"large"} type={"primary"}>Decrypt</Button></Col>
                     </Row>
                 </Form>
             </div>
