@@ -116,10 +116,7 @@ class FromContainer extends React.Component {
                        } else {
                            message.error(data["errmsg"],3)
                        }
-                       this.props.form.setFieldsValue({
-                           requestText:"",
-                           requestKey:""
-                       })
+                       this.props.form.resetFields();
                    }.bind(this),
                    error:function(xhr,status,e) {
                        console.log(e);
