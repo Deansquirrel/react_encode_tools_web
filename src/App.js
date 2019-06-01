@@ -1,11 +1,12 @@
 import React, {Component} from 'react';
 import {Button, LocaleProvider} from 'antd';
-import { Form,Input,Icon,Row,Col } from 'antd';
+import { Form,Input,Icon,Row,Col,message } from 'antd';
 import zhCN from 'antd/lib/locale-provider/zh_CN';
 import "antd/dist/antd.css";
 import "./App.css"
+import $ from 'jquery'
 
-const FormItem = Form.Item
+const FormItem = Form.Item;
 
 export default App;
 
@@ -25,7 +26,7 @@ class RootContainer extends Component {
     render(){
         return (
             <div className={"RootContainer"}>
-                <h1>Test</h1>
+                <h1>Coding</h1>
                 <EFromContainer />
             </div>
         )
@@ -37,20 +38,97 @@ class FromContainer extends React.Component {
     constructor(props) {
         super(props);
         this.state={
-            isDisable:true,
+            address:"",
+            isDisable:false,
+            oprType:0,
         }
+    }
+
+    componentWillMount() {
+        $.ajax({
+            url:'../../config.json',
+            cache:false,
+            dataType:'json',
+            success:function(data){
+                this.setState({
+                    address:data["address"]
+                });
+            }.bind(this),
+            error:function(e){
+                console.log(e.toString());
+                this.setState({
+                    address:""
+                });
+            }.bind(this)
+        });
+    }
+
+    handleReset = () => {
+        this.props.form.resetFields();
+    };
+
+    updateOprType(oprType){
+        this.setState({
+            oprType:oprType,
+        })
     }
 
     handleSubmit = (e) => {
         e.preventDefault();
-        this.props.form.validateFields((err,values)=> {
-           if (err) {
-               console.log(err)
-           } else {
-               console.log('Received values of form: ', values);
+           this.props.form.validateFields((err,values)=> {
+           if (!err) {
+               if(this.state.address === ""){
+                   message.warn("online address is empty,please wait...",3);
+                   return
+               }
+
+               let d = {};
+               d.requesttext = values["requestText"];
+               d.requestkey = values["requestKey"];
+               d.oprtype = this.state.oprType;
+
+               const hide = message.loading("action in progress..",0);
+
+               $.ajax({
+                   type:'POST',
+                   url:this.state.address + "/code",
+                   data:JSON.stringify(d),
+                   dataType:'json',
+                   timeout:30000,
+                   contentType:'application/json',
+                   cache:false,
+                   sync:true,
+                   beforeSend:function(){
+                       this.setState({
+                           isDisable:true,
+                       });
+                   }.bind(this),
+                   complete:function(){
+                       this.setState({
+                           isDisable:false,
+                           oprType:0,
+                       });
+                       setTimeout(hide,0)
+                   }.bind(this),
+                   success: function (data) {
+                       if(data["errcode"]===0){
+                           message.info(data["responsetext"],5)
+                       } else {
+                           message.error(data["errmsg"],3)
+                       }
+                       this.props.form.setFieldsValue({
+                           requestText:"",
+                           requestKey:""
+                       })
+                   }.bind(this),
+                   error:function(xhr,status,e) {
+                       console.log(e);
+                       message.error("[" + xhr.status + "]" + status + ":"+ e.toString(),3)
+                   }
+               })
            }
         });
-    }
+    };
 
 
     render(){
@@ -63,21 +141,67 @@ class FromContainer extends React.Component {
                         {getFieldDecorator('requestText',{
                             rules:[{required:true,message:"request text can not be empty"}]
                         })(
-                            <Input autoFocus={true} size={"large"} prefix={<Icon type={"edit"} theme="filled" style={{color:'rgba(0,0,0,.25'}}/>} placeholder={"Text"} />,
+                            <Input
+                                disabled={this.state.isDisable}
+                                autoFocus={true}
+                                size={"large"}
+                                prefix={
+                                    <Icon
+                                        type={"edit"}
+                                        theme="filled"
+                                        style={{color:'rgba(0,0,0,.25'}}
+                                    />
+                                }
+                                placeholder={"Text"}
+                            />,
                         )}
                     </FormItem>
                     <FormItem>
                         {getFieldDecorator('requestKey',{
                             rules:[{required:true,message:"request key can not be empty"}]
                         })(
-                            <Input size={"large"} prefix={<Icon type={"lock"} theme="filled" style={{color:'rgba(0,0,0,.25'}}/>} placeholder={"Text"} />,
+                            <Input
+                                disabled={this.state.isDisable}
+                                size={"large"}
+                                prefix={
+                                    <Icon
+                                        type={"lock"}
+                                        theme="filled"
+                                        style={{color:'rgba(0,0,0,.25'}}
+                                    />
+                                }
+                                placeholder={"Key"}
+                            />,
                         )}
                     </FormItem>
-                    <Row gutter={16}>
-                        <Col span={6}><Button size={"large"} type={"primary"}>Reset</Button></Col>
-                        <Col span={6}>&nbsp;</Col>
-                        <Col span={6}><Button style={{float:"right"}} size={"large"} type={"primary"}>Encrypt</Button></Col>
-                        <Col span={6}><Button style={{float:"right"}} size={"large"} type={"primary"}>Decrypt</Button></Col>
+                    <Row gutter={{ xs: 8, sm: 16, md: 24}}>
+                        <Col xs={7} sm={6} md={5}>
+                            <Button
+                                disabled={this.state.isDisable}
+                                size={"large"} type={"primary"}
+                                onClick={this.handleReset}>
+                                Reset
+                            </Button>
+                        </Col>
+                        <Col xs={1} sm={6} md={9}>&nbsp;</Col>
+                        <Col xs={8} sm={6} md={5}>
+                            <Button
+                                htmlType={"submit"}
+                                disabled={this.state.isDisable}
+                                style={{float:"right"}} size={"large"} type={"primary"}
+                                onClick={()=>{this.updateOprType(1)}}>
+                                Encrypt
+                            </Button>
+                        </Col>
+                        <Col xs={8} sm={6} md={5}>
+                            <Button
+                                htmlType={"submit"}
+                                disabled={this.state.isDisable}
+                                style={{float:"right"}} size={"large"} type={"primary"}
+                                onClick={()=>{this.updateOprType(2)}}>
+                                Decrypt
+                            </Button>
+                        </Col>
                     </Row>
                 </Form>
             </div>
