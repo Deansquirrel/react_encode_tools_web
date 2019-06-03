@@ -73,6 +73,7 @@ class FromContainer extends React.Component {
 
     handleReset = () => {
         this.props.form.resetFields();
+        FromContainer.resetFocus();
     };
 
     showForm(){
