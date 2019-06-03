@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import {Button, LocaleProvider} from 'antd';
-import { Form,Input,Icon,Row,Col,message } from 'antd';
+import { Form,Input,Icon,Row,Col,message,Descriptions } from 'antd';
 import zhCN from 'antd/lib/locale-provider/zh_CN';
 import "antd/dist/antd.css";
 import "./App.css"
@@ -26,7 +26,6 @@ class RootContainer extends Component {
     render(){
         return (
             <div className={"RootContainer"}>
-                <h1>Coding</h1>
                 <EFromContainer />
             </div>
         )
@@ -41,6 +40,7 @@ class FromContainer extends React.Component {
             address:"",
             isDisable:false,
             oprType:0,
+            showResult:false,
         }
     }
 
@@ -63,9 +63,24 @@ class FromContainer extends React.Component {
         });
     }
 
+    componentDidMount() {
+        FromContainer.resetFocus()
+    }
+
+    static resetFocus(){
+        document.getElementById("formContainer_requestText").focus();
+    }
+
     handleReset = () => {
         this.props.form.resetFields();
     };
+
+    showForm(){
+        FromContainer.resetFocus()
+        this.setState({
+            showResult:false,
+        });
+    }
 
     updateOprType(oprType){
         this.setState({
@@ -109,6 +124,7 @@ class FromContainer extends React.Component {
                            oprType:0,
                        });
                        setTimeout(hide,0)
+                       FromContainer.resetFocus();
                    }.bind(this),
                    success: function (data) {
                        if(data["errcode"]===0){
@@ -117,6 +133,9 @@ class FromContainer extends React.Component {
                            message.error(data["errmsg"],3)
                        }
                        this.props.form.resetFields();
+                       this.setState({
+                           showResult:true,
+                       })
                    }.bind(this),
                    error:function(xhr,status,e) {
                        console.log(e);
@@ -127,18 +146,19 @@ class FromContainer extends React.Component {
         });
     };
 
-
     render(){
         const { getFieldDecorator } = this.props.form;
 
         return (
             <div className={"FormContainer"}>
-                <Form onSubmit={this.handleSubmit}>
+                <Form style={{display:this.state.showResult?"block":"block"}} onSubmit={this.handleSubmit}>
+                    <h1>Coding</h1>
                     <FormItem>
                         {getFieldDecorator('requestText',{
                             rules:[{required:true,message:"request text can not be empty"}]
                         })(
                             <Input
+                                id={"inputText"}
                                 disabled={this.state.isDisable}
                                 autoFocus={true}
                                 size={"large"}
@@ -201,6 +221,22 @@ class FromContainer extends React.Component {
                         </Col>
                     </Row>
                 </Form>
+                <div style={{display:this.state.showResult?"block":"none"}}>
+                    <h1>Result</h1>
+                    <Descriptions>
+                        <Descriptions.Item label="Text">Zhou Maomao</Descriptions.Item>
+                        <br/>
+                        <Descriptions.Item label="Key">1810000000</Descriptions.Item>
+                    </Descriptions>
+                    <div>
+                        &nbsp;
+                        <Button
+                            style={{float:"right"}} size={"large"} type={"primary"}
+                            onClick={()=>{this.showForm()}}>
+                            Next
+                        </Button>
+                    </div>
+                </div>
             </div>
         )
     }
