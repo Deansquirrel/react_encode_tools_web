@@ -16,31 +16,23 @@ function App(){
     return (
         <LocaleProvider locale={zhCN}>
             <div className={"rootContainer"}>
-                <RootContainer />
+                <ContentContainer />
             </div>
         </LocaleProvider>
     )
 }
 
-class RootContainer extends Component {
-    render(){
-        return (
-            <div className={"RootContainer"}>
-                <EFromContainer />
-            </div>
-        )
-    }
-}
-
-
-class FromContainer extends React.Component {
+class ContentContainer extends Component {
     constructor(props) {
         super(props);
         this.state={
             address:"",
-            isDisable:false,
+            isProcessing:false,
             oprType:0,
-            showResult:false,
+            isFormDisable:false,
+            resultText:"",
+            resultKey:"",
+            showType:0,
         }
     }
 
@@ -64,6 +56,133 @@ class FromContainer extends React.Component {
     }
 
     componentDidMount() {
+        this.setState({
+            showType:1
+        })
+    }
+
+    showConvert(showType){
+        this.setState({
+            showType:showType,
+        })
+    }
+
+    handleRequest(text,key,oprType){
+        if(this.state.address === ""){
+            message.warn("request address is empty,please retry after a few seconds",3);
+            return
+        }
+
+        let d = {};
+        d.requesttext = text;
+        d.requestkey = key;
+        d.oprtype = oprType;
+
+        const hide = message.loading("action in progress..",0);
+
+        $.ajax({
+            type:'POST',
+            url:this.state.address + "/code",
+            data:JSON.stringify(d),
+            dataType:'json',
+            timeout:30000,
+            contentType:'application/json',
+            cache:false,
+            sync:true,
+            beforeSend:function(){
+                this.setState({
+                    isFormDisable:true,
+                });
+            }.bind(this),
+            complete:function(){
+                this.setState({
+                    isFormDisable:false,
+                });
+                setTimeout(hide,0)
+            }.bind(this),
+            success: function (data) {
+                if(data["errcode"]===0){
+                    // message.info(data["responsetext"],5)
+                    this.setState({
+                        resultText:data["responsetext"],
+                        resultKey:key,
+                        showType:2,
+                    });
+                } else {
+                    message.error(data["errmsg"],3)
+                }
+            }.bind(this),
+            error:function(xhr,status,e) {
+                console.log(e);
+                message.error("[" + xhr.status + "]" + status + ":"+ e.toString(),3)
+            }
+        })
+    }
+
+    render() {
+        switch (this.state.showType) {
+            case 1:
+                return (
+                    <div>
+                        <EFromContainer
+                            showConvert={()=>this.showConvert(2)}
+                            handleRequest={(text,key,oprType)=>this.handleRequest(text,key,oprType)}
+                            disable={this.state.isFormDisable}
+                        />
+                    </div>
+                );
+            case 2:
+                return (
+                    <div>
+                        <ResultContainer resultText={this.state.resultText} resultKey={this.state.resultKey} showConvert={()=>this.showConvert(1)}/>
+                    </div>
+                );
+            default:
+                return (
+                    <div>&nbsp;</div>
+                )
+        }
+    }
+}
+
+class ResultContainer extends React.Component {
+    constructor(props){
+        super(props)
+    }
+
+    render() {
+        const resultText = this.props.resultText;
+        const resultKey = this.props.resultKey;
+        return (
+            <div>
+                <h1>Result</h1>
+                <Descriptions column={1}>
+                    <Descriptions.Item label="Text"><span>{resultText}</span></Descriptions.Item>
+                    <Descriptions.Item label="Key">{resultKey}</Descriptions.Item>
+                </Descriptions>
+                <div>
+                    &nbsp;
+                    <Button
+                        style={{float:"right"}} size={"large"} type={"primary"}
+                        onClick={this.props.showConvert}>
+                        Next
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+}
+
+
+class FromContainer extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state={
+            oprType:0,
+        }
+    }
+
+    componentDidMount() {
         FromContainer.resetFocus()
     }
 
@@ -76,13 +195,6 @@ class FromContainer extends React.Component {
         FromContainer.resetFocus();
     };
 
-    showForm(){
-        FromContainer.resetFocus()
-        this.setState({
-            showResult:false,
-        });
-    }
-
     updateOprType(oprType){
         this.setState({
             oprType:oprType,
@@ -93,56 +205,7 @@ class FromContainer extends React.Component {
         e.preventDefault();
            this.props.form.validateFields((err,values)=> {
            if (!err) {
-               if(this.state.address === ""){
-                   message.warn("online address is empty,please wait...",3);
-                   return
-               }
-
-               let d = {};
-               d.requesttext = values["requestText"];
-               d.requestkey = values["requestKey"];
-               d.oprtype = this.state.oprType;
-
-               const hide = message.loading("action in progress..",0);
-
-               $.ajax({
-                   type:'POST',
-                   url:this.state.address + "/code",
-                   data:JSON.stringify(d),
-                   dataType:'json',
-                   timeout:30000,
-                   contentType:'application/json',
-                   cache:false,
-                   sync:true,
-                   beforeSend:function(){
-                       this.setState({
-                           isDisable:true,
-                       });
-                   }.bind(this),
-                   complete:function(){
-                       this.setState({
-                           isDisable:false,
-                           oprType:0,
-                       });
-                       setTimeout(hide,0)
-                       FromContainer.resetFocus();
-                   }.bind(this),
-                   success: function (data) {
-                       if(data["errcode"]===0){
-                           message.info(data["responsetext"],5)
-                       } else {
-                           message.error(data["errmsg"],3)
-                       }
-                       this.props.form.resetFields();
-                       this.setState({
-                           showResult:true,
-                       })
-                   }.bind(this),
-                   error:function(xhr,status,e) {
-                       console.log(e);
-                       message.error("[" + xhr.status + "]" + status + ":"+ e.toString(),3)
-                   }
-               })
+               this.props.handleRequest(values["requestText"],values["requestKey"],this.state.oprType)
            }
         });
     };
@@ -152,7 +215,7 @@ class FromContainer extends React.Component {
 
         return (
             <div className={"FormContainer"}>
-                <Form style={{display:this.state.showResult?"block":"block"}} onSubmit={this.handleSubmit}>
+                <Form onSubmit={this.handleSubmit}>
                     <h1>Coding</h1>
                     <FormItem>
                         {getFieldDecorator('requestText',{
@@ -160,7 +223,7 @@ class FromContainer extends React.Component {
                         })(
                             <Input
                                 id={"inputText"}
-                                disabled={this.state.isDisable}
+                                disabled={this.props.disable}
                                 autoFocus={true}
                                 size={"large"}
                                 prefix={
@@ -179,7 +242,7 @@ class FromContainer extends React.Component {
                             rules:[{required:true,message:"request key can not be empty"}]
                         })(
                             <Input
-                                disabled={this.state.isDisable}
+                                disabled={this.props.disable}
                                 size={"large"}
                                 prefix={
                                     <Icon
@@ -195,7 +258,7 @@ class FromContainer extends React.Component {
                     <Row gutter={{ xs: 8, sm: 16, md: 24}}>
                         <Col xs={7} sm={6} md={5}>
                             <Button
-                                disabled={this.state.isDisable}
+                                disabled={this.props.disable}
                                 size={"large"} type={"primary"}
                                 onClick={this.handleReset}>
                                 Reset
@@ -205,7 +268,7 @@ class FromContainer extends React.Component {
                         <Col xs={8} sm={6} md={5}>
                             <Button
                                 htmlType={"submit"}
-                                disabled={this.state.isDisable}
+                                disabled={this.props.disable}
                                 style={{float:"right"}} size={"large"} type={"primary"}
                                 onClick={()=>{this.updateOprType(1)}}>
                                 Encrypt
@@ -214,7 +277,7 @@ class FromContainer extends React.Component {
                         <Col xs={8} sm={6} md={5}>
                             <Button
                                 htmlType={"submit"}
-                                disabled={this.state.isDisable}
+                                disabled={this.props.disable}
                                 style={{float:"right"}} size={"large"} type={"primary"}
                                 onClick={()=>{this.updateOprType(2)}}>
                                 Decrypt
@@ -222,22 +285,6 @@ class FromContainer extends React.Component {
                         </Col>
                     </Row>
                 </Form>
-                <div style={{display:this.state.showResult?"block":"none"}}>
-                    <h1>Result</h1>
-                    <Descriptions>
-                        <Descriptions.Item label="Text">Zhou Maomao</Descriptions.Item>
-                        <br/>
-                        <Descriptions.Item label="Key">1810000000</Descriptions.Item>
-                    </Descriptions>
-                    <div>
-                        &nbsp;
-                        <Button
-                            style={{float:"right"}} size={"large"} type={"primary"}
-                            onClick={()=>{this.showForm()}}>
-                            Next
-                        </Button>
-                    </div>
-                </div>
             </div>
         )
     }
