@@ -14,3 +14,12 @@
     min-width: 200px;
 }
 
+.ResultContainer {
+    max-width: 800px;
+    min-width: 200px;
+}
+
+.divNextBtn {
+    margin-top: 24px;
+    min-height: 36px;
+}

@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import {Button, LocaleProvider} from 'antd';
-import { Form,Input,Icon,Row,Col,message,Descriptions } from 'antd';
+import { Form,Input,Icon,Row,Col,message,Table } from 'antd';
 import zhCN from 'antd/lib/locale-provider/zh_CN';
 import "antd/dist/antd.css";
 import "./App.css"
@@ -146,21 +146,41 @@ class ContentContainer extends Component {
 }
 
 class ResultContainer extends React.Component {
-    constructor(props){
-        super(props)
-    }
 
     render() {
-        const resultText = this.props.resultText;
-        const resultKey = this.props.resultKey;
+        const dataSource = [
+            {
+                key:"Text",
+                lab:"Text",
+                val:this.props.resultText
+            },
+            {
+                key:"Key",
+                lab:"Key",
+                val:this.props.resultKey
+            }
+        ];
+
+        const columns = [
+            {
+                align:"right",
+                dataIndex:"lab",
+                title:"Content",
+                rowKey:"key",
+            }  ,
+            {
+                dataIndex:"val",
+                title:"Val",
+            }
+        ];
+
         return (
-            <div>
+            <div className={"ResultContainer"}>
                 <h1>Result</h1>
-                <Descriptions column={1}>
-                    <Descriptions.Item label="Text"><span>{resultText}</span></Descriptions.Item>
-                    <Descriptions.Item label="Key">{resultKey}</Descriptions.Item>
-                </Descriptions>
                 <div>
+                    <Table pagination={false} showHeader={false} bordered={true} dataSource={dataSource} columns={columns} />
+                </div>
+                <div className={"divNextBtn"}>
                     &nbsp;
                     <Button
                         style={{float:"right"}} size={"large"} type={"primary"}
